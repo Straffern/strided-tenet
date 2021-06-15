@@ -216,12 +216,12 @@ convCheck = 10
 convIter = 0
 
 # Instantiate Carbontracker
-tracker = CarbonTracker(epochs=args.num_epochs,
-            log_dir='carbontracker/',monitor_epochs=-1)
+#tracker = CarbonTracker(epochs=args.num_epochs,
+#            log_dir='carbontracker/',monitor_epochs=-1)
 
 # Training starts here
 for epoch in range(args.num_epochs):
-    tracker.epoch_start()
+#    tracker.epoch_start()
     running_loss = 0.
     running_acc = 0.
     t = time.time()
@@ -296,5 +296,5 @@ for epoch in range(args.num_epochs):
             break
     writeLog(logFile, epoch, running_loss/bNum, tr_acc,
             vl_loss, np.abs(vl_acc), time.time()-t)
-    tracker.epoch_end()
-tracker.stop()
+ #   tracker.epoch_end()
+#tracker.stop()
