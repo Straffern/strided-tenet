@@ -109,15 +109,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
 parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
 parser.add_argument('--fold', type=int, default=0, help='Fold to use for testing')
-parser.add_argument('--feat', type=int, default=4, help='Number of local features')
+parser.add_argument('--feat', type=int, default=1, help='Number of local features')
 parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
 parser.add_argument('--l2', type=float, default=0, help='L2 regularisation')
 parser.add_argument('--p', type=float, default=0.5, help='Augmentation probability')
 parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
 parser.add_argument('--save', action='store_true', default=False, help='Save model')
-parser.add_argument('--data', type=str, default='data/lungCXR/',help='Path to data.')
+parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
 parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
-parser.add_argument('--kernel', type=int, default=4, help='Stride of squeeze kernel')
+parser.add_argument('--kernel', nargs="*", type=int, default=[4, 4, 5], help='Stride of squeeze kernel')
 parser.add_argument('--seed', type=int, default=1, help='Random seed')
 
 # Visualization and log dirs
@@ -146,21 +146,23 @@ else:
     trans_train = trans_valid
     print("No augmentation....")
    
-print("Using Lung CXR dataset")
+print("Using Brain MRI dataset")
 print("Using Fold: %d"%args.fold)
-dataset_valid = lungCXR(split='Valid', data_dir=args.data, 
-                    transform=trans_valid,fold=args.fold)
-dataset_train = lungCXR(split='Train', data_dir=args.data,fold=args.fold, 
-                                transform=trans_train)
-dataset_test = lungCXR(split='Test', data_dir=args.data,fold=args.fold,
-                transform=trans_valid)
+dataset_valid = BrainTumour(split='Valid', data_dir=args.data, 
+                    transform=None,fold=args.fold)
+dataset_train = BrainTumour(split='Train', data_dir=args.data,fold=args.fold, 
+                                transform=None)
+dataset_test = BrainTumour(split='Test', data_dir=args.data,fold=args.fold,
+                transform=None)
 
 # Initiliaze input dimensions
 dim = torch.ShortTensor(list(dataset_valid[0][0].shape[1:]))
 nCh = int(dataset_valid[0][0].shape[0])
 H = dim[0] 
-W = dim[1] 
-output_dim = H*W # Same as the number of pixels
+W = dim[1]
+D = dim[2]
+
+output_dim = H*W*D # Same as the number of pixels
 
 num_train = len(dataset_train)
 num_valid = len(dataset_valid)
