@@ -7,7 +7,7 @@ import pdb
 from data.datasets import *
 from utils.tools import *
 import argparse
-from carbontracker.tracker import CarbonTracker
+# from carbontracker.tracker import CarbonTracker
 from sklearn.metrics import precision_recall_curve, average_precision_score
 from torchvision.utils import save_image
 import torch.nn.functional as F

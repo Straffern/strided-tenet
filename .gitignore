@@ -134,3 +134,6 @@ vis/
 logs/
 data/lungCXR
 lossHistoryOld.txt
+
+*.nii.gz
+*.tar
