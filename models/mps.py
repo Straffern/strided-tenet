@@ -121,7 +121,8 @@ class MPS(nn.Module):
                                  2D vectors using a default linear feature map.
         """
         x = x.permute(0,2,1)
-        x = [phi_x(x,self.lFeat,i) for i in range(1,(self.lFeat+1))]
+        if self.lFeat > 1: # Ommits the feature expansion
+            x = [phi_x(x,self.lFeat,i) for i in range(1,(self.lFeat+1))]
         x = torch.cat(x,dim=2)
         output = self.linear_region(x) 
 
