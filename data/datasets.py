@@ -31,8 +31,8 @@ class BrainTumour(Dataset):
             self.data, self.targets = data0, target0
 
         elif split == 'Train':
-            data0 = images[folds[1]] + images[folds[2]]
-            target0 = labels[folds[1]] + labels[folds[2]]
+            data0 = np.concatenate(images[folds[1]], images[folds[2]])
+            target0 = np.concatenate(labels[folds[1]], labels[folds[2]])
 
             self.data = list(map(lambda img: nib.load(images_path+img), data0))
             self.targets = list(map(lambda label: nib.load(labels_path+label), target0))
