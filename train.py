@@ -139,7 +139,7 @@ args = parser.parse_args()
 # Assign script args to vars
 torch.manual_seed(args.seed)
 batch_size = args.batch_size
-kernel = args.kernel 
+kernel = args.kernel
 feature_dim = args.feat
 
 ### Data processing and loading....
@@ -187,11 +187,11 @@ nTrain = len(loader_train)
 nTest = len(loader_test)
 
 # Initialize the models
-dim = dim//args.kernel 
+dim = dim//torch.Tensor(args.kernel)
 print("Using Strided Tenet with patches of size",dim)
 output_dim = torch.prod(dim)
-model = MPS(input_dim=torch.prod(dim), 
-        output_dim=output_dim, 
+model = MPS(input_dim= int(torch.prod(dim).item()), 
+        output_dim= int(output_dim.item()), 
         bond_dim=args.bond_dim,
         feature_dim=feature_dim*nCh,
         lFeat=feature_dim)
