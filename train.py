@@ -32,8 +32,13 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         b = inputs.shape[0]
         labelsNp = labelsNp + labels.numpy().tolist()
         # Make patches on the fly
-        inputs = inputs.unfold(2,dim[0],dim[1]).unfold(3,dim[0],\
-                dim[1]).reshape(-1,nCh,dim[0],dim[1])
+
+        inputs = unfold(inputs, dim)
+        patch_shape = inputs.shape[2:]
+        inputs = inputs.reshape(-1, nCh, *dim)
+        # inputs = inputs.unfold(2,dim[0],dim[1]).unfold(3,dim[0],\
+                # dim[1]).reshape(-1,nCh,dim[0],dim[1])
+
         b = inputs.shape[0]
         # Flatten to 1D vector as input to MPS
         inputs = inputs.view(b,nCh,-1)
@@ -44,15 +49,16 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         scores = torch.sigmoid(model(inputs))
         scores[scores.isnan()] = 0
         # Put patches back together
-        scores = fold2d(scores.view(-1,dim[0],dim[1]),labels.shape[0])
+        scores = fold(scores.view(-1, *patch_shape))
+        # scores = fold2d(scores.view(-1,dim[0],dim[1]),labels.shape[0])
 
         preds = scores.clone()
 
-        loss = loss_fun(scores.view(-1,H,W), labels) 
+        loss = loss_fun(scores.view(-1,H,W,D), labels) 
         
         predsNp = predsNp + preds.cpu().numpy().tolist()
         vl_loss += loss.item()
-        vl_acc += accuracy(labels,preds.view(-1,H,W))
+        vl_acc += accuracy(labels,preds.view(-1,H,W,D))
 
     # Compute AUC over the full (valid/test) set
     labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
@@ -237,10 +243,9 @@ for epoch in range(args.num_epochs):
         bNum += 1
         b = inputs.shape[0]
         # Make patches on the fly
-        inputs = inputs.unfold(2,dim[0],dim[1]).unfold(3,dim[0],\
-                dim[1]).reshape(-1,nCh,dim[0],dim[1])
-        labels = labels.unfold(1,dim[0],dim[1]).unfold(2,dim[0],\
-                dim[1]).reshape(-1,dim[0],dim[1])
+        inputs = unfold(inputs, dim).reshape(-1, nCh, *dim)
+        labels = unfold(labels, dim, has_channels=False).reshape(-1, *dim)
+        
         b = inputs.shape[0]
         # Flatten to 1D vector as input to MPS
         inputs = inputs.view(b,nCh,-1)
