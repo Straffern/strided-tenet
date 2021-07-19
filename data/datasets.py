@@ -47,7 +47,10 @@ class BrainTumour(Dataset):
         return len(self.targets)
     
     def __getitem__(self, index):
-        image, label = torch.from_numpy(self.data[index].get_fdata()).movedim(-1, 0), torch.from_numpy(self.targets[index].get_fdata())
+        loaded_img = self.data[index].get_fdata()
+        loaded_label = self.targets[index].get_fdata()
+
+        image, label = torch.from_numpy(loaded_img).movedim(-1, 0), torch.from_numpy((loaded_label > 0).astype(int))
         label = label.type(torch.FloatTensor)
 
         if self.transform is not None:

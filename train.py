@@ -57,7 +57,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         loss = loss_fun(scores.view(-1,H,W,D), labels) 
         
         predsNp = predsNp + preds.cpu().numpy().tolist()
-        vl_loss += loss.item()
+        vl_loss += float(loss.item())
         vl_acc += accuracy(labels,preds.view(-1,H,W,D))
 
     # Compute AUC over the full (valid/test) set
