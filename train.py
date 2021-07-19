@@ -33,9 +33,9 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         labelsNp = labelsNp + labels.numpy().tolist()
         # Make patches on the fly
 
-        inputs = unfold(inputs, dim)
+        inputs = unfold(inputs, dim.numpy().astype(int))
         patch_shape = inputs.shape[2:]
-        inputs = inputs.reshape(-1, nCh, *dim)
+        inputs = inputs.reshape(-1, nCh, *dim.numpy().astype(int))
         # inputs = inputs.unfold(2,dim[0],dim[1]).unfold(3,dim[0],\
                 # dim[1]).reshape(-1,nCh,dim[0],dim[1])
 
@@ -111,197 +111,199 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
 
 #### MAIN STARTS HERE ####
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
-parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
-parser.add_argument('--fold', type=int, default=0, help='Fold to use for testing')
-parser.add_argument('--feat', type=int, default=1, help='Number of local features')
-parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
-parser.add_argument('--l2', type=float, default=0, help='L2 regularisation')
-parser.add_argument('--p', type=float, default=0.5, help='Augmentation probability')
-parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
-parser.add_argument('--save', action='store_true', default=False, help='Save model')
-parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
-parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
-parser.add_argument('--kernel', nargs="*", type=int, default=[4, 4, 5], help='Stride of squeeze kernel')
-parser.add_argument('--seed', type=int, default=1, help='Random seed')
+if __name__ == '__main__':
 
-# Visualization and log dirs
-if not os.path.exists('vis'):
-    os.mkdir('vis')
-if not os.path.exists('logs'):
-    os.mkdir('logs')
-logFile = 'logs/'+time.strftime("%Y%m%d_%H_%M")+'.txt'
-makeLogFile(logFile)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
+    parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
+    parser.add_argument('--fold', type=int, default=0, help='Fold to use for testing')
+    parser.add_argument('--feat', type=int, default=1, help='Number of local features')
+    parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
+    parser.add_argument('--l2', type=float, default=0, help='L2 regularisation')
+    parser.add_argument('--p', type=float, default=0.5, help='Augmentation probability')
+    parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
+    parser.add_argument('--save', action='store_true', default=False, help='Save model')
+    parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
+    parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
+    parser.add_argument('--kernel', nargs="*", type=int, default=[4, 4, 5], help='Stride of squeeze kernel')
+    parser.add_argument('--seed', type=int, default=1, help='Random seed')
 
-args = parser.parse_args()
+    # Visualization and log dirs
+    if not os.path.exists('vis'):
+        os.mkdir('vis')
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    logFile = 'logs/'+time.strftime("%Y%m%d_%H_%M")+'.txt'
+    makeLogFile(logFile)
 
-# Assign script args to vars
-torch.manual_seed(args.seed)
-batch_size = args.batch_size
-kernel = args.kernel
-feature_dim = args.feat
+    args = parser.parse_args()
 
-### Data processing and loading....
-trans_valid = A.Compose([ToTensorV2()])
-if args.aug:
-    trans_train = A.Compose([A.ShiftScaleRotate(shift_limit=0.5, \
-            scale_limit=0.5, rotate_limit=30, p=args.p),ToTensorV2()])
-    print("Using Augmentation with p=%.2f"%args.p)
-else:
-    trans_train = trans_valid
-    print("No augmentation....")
-   
-print("Using Brain MRI dataset")
-print("Using Fold: %d"%args.fold)
-dataset_valid = BrainTumour(split='Valid', data_dir=args.data, 
-                    transform=None,fold=args.fold)
-dataset_train = BrainTumour(split='Train', data_dir=args.data,fold=args.fold, 
-                                transform=None)
-dataset_test = BrainTumour(split='Test', data_dir=args.data,fold=args.fold,
-                transform=None)
+    # Assign script args to vars
+    torch.manual_seed(args.seed)
+    batch_size = args.batch_size
+    kernel = args.kernel
+    feature_dim = args.feat
 
-# Initiliaze input dimensions
-dim = torch.ShortTensor(list(dataset_valid[0][0].shape[1:]))
-nCh = int(dataset_valid[0][0].shape[0])
-H = dim[0] 
-W = dim[1]
-D = dim[2]
-
-output_dim = H*W*D # Same as the number of pixels
-
-num_train = len(dataset_train)
-num_valid = len(dataset_valid)
-num_test = len(dataset_test)
-print("Num. train = %d, Num. val = %d, Num. test = %d"%(num_train,num_valid,num_test))
-
-# Initialize dataloaders
-loader_train = DataLoader(dataset = dataset_train, drop_last=False,num_workers=1, 
-                          batch_size=batch_size, shuffle=True,pin_memory=True)
-loader_valid = DataLoader(dataset = dataset_valid, drop_last=True,num_workers=1,
-                          batch_size=batch_size, shuffle=False,pin_memory=True)
-loader_test = DataLoader(dataset = dataset_test, drop_last=True,num_workers=1,
-                         batch_size=batch_size, shuffle=False,pin_memory=True)
-nValid = len(loader_valid)
-nTrain = len(loader_train)
-nTest = len(loader_test)
-
-# Initialize the models
-dim = dim//torch.Tensor(args.kernel)
-print("Using Strided Tenet with patches of size",dim)
-output_dim = torch.prod(dim)
-model = MPS(input_dim= int(torch.prod(dim).item()), 
-        output_dim= int(output_dim.item()), 
-        bond_dim=args.bond_dim,
-        feature_dim=feature_dim*nCh,
-        lFeat=feature_dim)
-model = model.to(device)
-
-# Initialize loss and metrics
-accuracy = dice
-loss_fun = dice_loss()
-
-# Initialize optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, 
-                             weight_decay=args.l2)
-
-nParam = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print("Number of parameters:%d"%(nParam))
-print(f"Maximum MPS bond dimension = {args.bond_dim}")
-print(f"Using Adam w/ learning rate = {args.lr:.1e}")
-print("Local feature map dim: %d, nCh: %d, B:%d"%(feature_dim,nCh,batch_size))
-with open(logFile,"a") as f:
-    print("Bond dim: %d"%(args.bond_dim),file=f)
-    print("Number of parameters:%d"%(nParam),file=f)
-    print(f"Using Adam w/ learning rate = {args.lr:.1e}",file=f)
-    print("Local feature map dim: %d, nCh: %d, B:%d"%(feature_dim,nCh,batch_size),file=f)
-
-# Miscellaneous initialization
-start_time = time.time()
-maxAuc = -1
-minLoss = 1e3
-convCheck = 10
-convIter = 0
-
-# Instantiate Carbontracker
-#tracker = CarbonTracker(epochs=args.num_epochs,
-#            log_dir='carbontracker/',monitor_epochs=-1)
-
-# Training starts here
-for epoch in range(args.num_epochs):
-#    tracker.epoch_start()
-    running_loss = 0.
-    running_acc = 0.
-    t = time.time()
-    model.train()
-    predsNp = [] 
-    labelsNp = []
-    bNum = 0
-    for i, (inputs, labels) in enumerate(loader_train):
-        for p in model.parameters():
-            p.grad = None
-        bNum += 1
-        b = inputs.shape[0]
-        # Make patches on the fly
-        inputs = unfold(inputs, dim).reshape(-1, nCh, *dim)
-        labels = unfold(labels, dim, has_channels=False).reshape(-1, *dim)
-        
-        b = inputs.shape[0]
-        # Flatten to 1D vector as input to MPS
-        inputs = inputs.view(b,nCh,-1)
-        labelsNp = labelsNp + (labels.numpy()).tolist()
-
-        inputs = inputs.to(device)
-        labels = labels.to(device)
-
-        scores = torch.sigmoid(model(inputs))
-
-        loss = loss_fun(scores.view(-1), labels.view(-1)) 
-
-        # Backpropagate and update parameters
-        loss.backward()
-        optimizer.step()
-
-        with torch.no_grad():
-            preds = scores.clone()
-            predsNp = predsNp + (preds.data.cpu().numpy()).tolist()
-            running_acc += accuracy(labels,preds)
-            running_loss += loss
-            
-        if (i+1) % 10 == 0:
-            print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
-                   .format(epoch+1, args.num_epochs, i+1, nTrain, loss.item()))
+    ### Data processing and loading....
+    trans_valid = A.Compose([ToTensorV2()])
+    if args.aug:
+        trans_train = A.Compose([A.ShiftScaleRotate(shift_limit=0.5, \
+                scale_limit=0.5, rotate_limit=30, p=args.p),ToTensorV2()])
+        print("Using Augmentation with p=%.2f"%args.p)
+    else:
+        trans_train = trans_valid
+        print("No augmentation....")
     
-    tr_acc = running_acc/nTrain
+    print("Using Brain MRI dataset")
+    print("Using Fold: %d"%args.fold)
+    dataset_valid = BrainTumour(split='Valid', data_dir=args.data, 
+                        transform=None,fold=args.fold)
+    dataset_train = BrainTumour(split='Train', data_dir=args.data,fold=args.fold, 
+                                    transform=None)
+    dataset_test = BrainTumour(split='Test', data_dir=args.data,fold=args.fold,
+                    transform=None)
 
-    # Evaluate on Validation set 
-    with torch.no_grad():
-        if tr_acc.isnan():
-            print('NaN error!')
-            break
-        vl_acc, vl_loss, optThresh = evaluate(loader_valid,testMode=True,plot=False)
-        if vl_acc > maxAuc or vl_loss < minLoss:
-            convIter = 0
-            if args.save:
-                torch.save(model.state_dict(),'saved_models/'+logFile.replace('.txt','.pt'))
-            if (vl_acc > maxAuc) or (vl_acc >= maxAuc and vl_loss < minLoss):
-                ### Predict on test set if new optimum
-                maxAuc = vl_acc
-                print('New Best: %.4f'%np.abs(maxAuc))
-                ts_acc, ts_loss, _ = evaluate(loader=loader_test,\
-                        optThresh=optThresh,testMode=True,plot=True,mode='Test')
-                print('Test Set Loss:%.4f\t Acc:%.4f'%(ts_loss, ts_acc))
-                with open(logFile,"a") as f:
-                    print('Test Set Loss:%.4f\tAcc:%.4f'%(ts_loss, ts_acc),file=f)
-                convEpoch = epoch
-            elif vl_loss < minLoss:
-                minLoss = vl_loss
-        else:
-            convIter += 1
-        if convIter == convCheck:
-            print("Converged at epoch:%d with AUC:%.4f"%(convEpoch+1,maxAuc))
-            break
-    writeLog(logFile, epoch, running_loss/bNum, tr_acc,
-            vl_loss, np.abs(vl_acc), time.time()-t)
- #   tracker.epoch_end()
-#tracker.stop()
+    # Initiliaze input dimensions
+    dim = torch.ShortTensor(list(dataset_valid[0][0].shape[1:]))
+    nCh = int(dataset_valid[0][0].shape[0])
+    H = dim[0] 
+    W = dim[1]
+    D = dim[2]
+
+    output_dim = H*W*D # Same as the number of pixels
+
+    num_train = len(dataset_train)
+    num_valid = len(dataset_valid)
+    num_test = len(dataset_test)
+    print("Num. train = %d, Num. val = %d, Num. test = %d"%(num_train,num_valid,num_test))
+
+    # Initialize dataloaders
+    loader_train = DataLoader(dataset = dataset_train, drop_last=False,num_workers=1, 
+                            batch_size=batch_size, shuffle=True,pin_memory=True)
+    loader_valid = DataLoader(dataset = dataset_valid, drop_last=True,num_workers=1,
+                            batch_size=batch_size, shuffle=False,pin_memory=True)
+    loader_test = DataLoader(dataset = dataset_test, drop_last=True,num_workers=1,
+                            batch_size=batch_size, shuffle=False,pin_memory=True)
+    nValid = len(loader_valid)
+    nTrain = len(loader_train)
+    nTest = len(loader_test)
+
+    # Initialize the models
+    dim = dim//torch.Tensor(args.kernel)
+    print("Using Strided Tenet with patches of size",dim)
+    output_dim = torch.prod(dim)
+    model = MPS(input_dim= int(torch.prod(dim).item()), 
+            output_dim= int(output_dim.item()), 
+            bond_dim=args.bond_dim,
+            feature_dim=feature_dim*nCh,
+            lFeat=feature_dim)
+    model = model.to(device)
+
+    # Initialize loss and metrics
+    accuracy = dice
+    loss_fun = dice_loss()
+
+    # Initialize optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, 
+                                weight_decay=args.l2)
+
+    nParam = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print("Number of parameters:%d"%(nParam))
+    print(f"Maximum MPS bond dimension = {args.bond_dim}")
+    print(f"Using Adam w/ learning rate = {args.lr:.1e}")
+    print("Local feature map dim: %d, nCh: %d, B:%d"%(feature_dim,nCh,batch_size))
+    with open(logFile,"a") as f:
+        print("Bond dim: %d"%(args.bond_dim),file=f)
+        print("Number of parameters:%d"%(nParam),file=f)
+        print(f"Using Adam w/ learning rate = {args.lr:.1e}",file=f)
+        print("Local feature map dim: %d, nCh: %d, B:%d"%(feature_dim,nCh,batch_size),file=f)
+
+    # Miscellaneous initialization
+    start_time = time.time()
+    maxAuc = -1
+    minLoss = 1e3
+    convCheck = 10
+    convIter = 0
+
+    # Instantiate Carbontracker
+    #tracker = CarbonTracker(epochs=args.num_epochs,
+    #            log_dir='carbontracker/',monitor_epochs=-1)
+
+    # Training starts here
+    for epoch in range(args.num_epochs):
+    #    tracker.epoch_start()
+        running_loss = 0.
+        running_acc = 0.
+        t = time.time()
+        model.train()
+        predsNp = [] 
+        labelsNp = []
+        bNum = 0
+        for i, (inputs, labels) in enumerate(loader_train):
+            for p in model.parameters():
+                p.grad = None
+            bNum += 1
+            b = inputs.shape[0]
+            # Make patches on the fly
+            inputs = unfold(inputs, dim.numpy().astype(int)).reshape(-1, nCh, *dim.numpy().astype(int))
+            labels = unfold(labels, dim.numpy().astype(int), has_channels=False).reshape(-1, *dim.numpy().astype(int))
+            
+            b = inputs.shape[0]
+            # Flatten to 1D vector as input to MPS
+            inputs = inputs.view(b,nCh,-1)
+            labelsNp = labelsNp + (labels.numpy()).tolist()
+
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+
+            scores = torch.sigmoid(model(inputs))
+
+            loss = loss_fun(scores.view(-1), labels.view(-1)) 
+
+            # Backpropagate and update parameters
+            loss.backward()
+            optimizer.step()
+
+            with torch.no_grad():
+                preds = scores.clone()
+                predsNp = predsNp + (preds.data.cpu().numpy()).tolist()
+                running_acc += accuracy(labels,preds)
+                running_loss += loss
+                
+            if (i+1) % 10 == 0:
+                print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
+                    .format(epoch+1, args.num_epochs, i+1, nTrain, loss.item()))
+        
+        tr_acc = running_acc/nTrain
+
+        # Evaluate on Validation set 
+        with torch.no_grad():
+            if tr_acc.isnan():
+                print('NaN error!')
+                break
+            vl_acc, vl_loss, optThresh = evaluate(loader_valid,testMode=True,plot=False)
+            if vl_acc > maxAuc or vl_loss < minLoss:
+                convIter = 0
+                if args.save:
+                    torch.save(model.state_dict(),'saved_models/'+logFile.replace('.txt','.pt'))
+                if (vl_acc > maxAuc) or (vl_acc >= maxAuc and vl_loss < minLoss):
+                    ### Predict on test set if new optimum
+                    maxAuc = vl_acc
+                    print('New Best: %.4f'%np.abs(maxAuc))
+                    ts_acc, ts_loss, _ = evaluate(loader=loader_test,\
+                            optThresh=optThresh,testMode=True,plot=True,mode='Test')
+                    print('Test Set Loss:%.4f\t Acc:%.4f'%(ts_loss, ts_acc))
+                    with open(logFile,"a") as f:
+                        print('Test Set Loss:%.4f\tAcc:%.4f'%(ts_loss, ts_acc),file=f)
+                    convEpoch = epoch
+                elif vl_loss < minLoss:
+                    minLoss = vl_loss
+            else:
+                convIter += 1
+            if convIter == convCheck:
+                print("Converged at epoch:%d with AUC:%.4f"%(convEpoch+1,maxAuc))
+                break
+        writeLog(logFile, epoch, running_loss/bNum, tr_acc,
+                vl_loss, np.abs(vl_acc), time.time()-t)
+    #   tracker.epoch_end()
+    #tracker.stop()

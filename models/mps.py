@@ -123,7 +123,7 @@ class MPS(nn.Module):
         x = x.permute(0,2,1)
         if self.lFeat > 1: # Ommits the feature expansion
             x = [phi_x(x,self.lFeat,i) for i in range(1,(self.lFeat+1))]
-        x = torch.cat(x,dim=2)
+            x = torch.cat(x,dim=2)
         output = self.linear_region(x) 
 
         return output
@@ -580,7 +580,7 @@ class InputRegion(nn.Module):
         assert input_data.size(2) == tensor.size(3)
 
         # Contract the input with our core tensor
-        mats = torch.einsum('slri,bsi->bslr', [tensor, input_data])
+        mats = torch.einsum('slri,bsi->bslr', [tensor, input_data.float()])
 
         # If we're using bias matrices, add those here
         if self.use_bias:
