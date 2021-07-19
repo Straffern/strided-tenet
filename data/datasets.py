@@ -60,6 +60,8 @@ class BrainTumour(Dataset):
             label = transformed["mask"]
         
         label = label.type(torch.FloatTensor)
+        self.data[index].uncached()
+        self.label[index].uncached()
         return image, label.squeeze()
 
             
