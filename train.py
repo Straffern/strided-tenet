@@ -5,11 +5,13 @@ from models.mps import MPS
 from torchvision import transforms, datasets
 import pdb
 from data.datasets import *
+from data.transform import ToTensor, ZeroPad
 from utils.tools import *
 import argparse
 # from carbontracker.tracker import CarbonTracker
 from sklearn.metrics import precision_recall_curve, average_precision_score
 from torchvision.utils import save_image
+from torchvision import transforms
 import torch.nn.functional as F
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -125,7 +127,8 @@ if __name__ == '__main__':
     parser.add_argument('--save', action='store_true', default=False, help='Save model')
     parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
     parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
-    parser.add_argument('--kernel', nargs="*", type=int, default=[4, 4, 5], help='Stride of squeeze kernel')
+    parser.add_argument('--kernel', nargs='*', type=int, default=[16], help='Stride of squeeze kernel')
+    parser.add_argument('--shape', nargs='*', type=int, default=[256, 256, 160], help='Shape that data should be padded to.')
     parser.add_argument('--seed', type=int, default=1, help='Random seed')
 
     # Visualization and log dirs
@@ -145,7 +148,8 @@ if __name__ == '__main__':
     feature_dim = args.feat
 
     ### Data processing and loading....
-    trans_valid = A.Compose([ToTensorV2()])
+    # trans_valid = A.Compose([ZeroPad(tuple(args.shape)), ToTensor()])
+    trans_valid = transforms.Compose([ZeroPad(tuple(args.shape)), ToTensor()])
     if args.aug:
         trans_train = A.Compose([A.ShiftScaleRotate(shift_limit=0.5, \
                 scale_limit=0.5, rotate_limit=30, p=args.p),ToTensorV2()])
@@ -157,11 +161,11 @@ if __name__ == '__main__':
     print("Using Brain MRI dataset")
     print("Using Fold: %d"%args.fold)
     dataset_valid = BrainTumour(split='Valid', data_dir=args.data, 
-                        transform=None,fold=args.fold)
+                        transform=trans_valid,fold=args.fold)
     dataset_train = BrainTumour(split='Train', data_dir=args.data,fold=args.fold, 
-                                    transform=None)
+                                    transform=trans_train)
     dataset_test = BrainTumour(split='Test', data_dir=args.data,fold=args.fold,
-                    transform=None)
+                    transform=trans_valid)
 
     # Initiliaze input dimensions
     dim = torch.ShortTensor(list(dataset_valid[0][0].shape[1:]))

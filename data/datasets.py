@@ -50,13 +50,16 @@ class BrainTumour(Dataset):
         loaded_img = self.data[index].get_fdata()
         loaded_label = self.targets[index].get_fdata()
 
-        image, label = torch.from_numpy(loaded_img).movedim(-1, 0), torch.from_numpy((loaded_label > 0).astype(int))
-        label = label.type(torch.FloatTensor)
-
+        # Transforms labels to C-boolean
+        image, label = loaded_img, (loaded_label > 0).astype(int)
+        
         if self.transform is not None:
-            transformed = self.transform(image=image.numpy(), mask=label.numpy())
+            sample = {'image': image, 'mask': label}
+            transformed = self.transform(sample)
             image = transformed["image"]
             label = transformed["mask"]
+        
+        label = label.type(torch.FloatTensor)
         return image, label.squeeze()
 
             
