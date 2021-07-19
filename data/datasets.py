@@ -47,8 +47,10 @@ class BrainTumour(Dataset):
         return len(self.targets)
     
     def __getitem__(self, index):
-        loaded_img = self.data[index].get_fdata()
-        loaded_label = self.targets[index].get_fdata()
+        # loaded_img = self.data[index].get_fdata()
+        # loaded_label = self.targets[index].get_fdata()
+        loaded_img = np.asarray(self.data[index].dataobj)
+        loaded_label = np.asarray(self.targets[index].dataobj)
 
         # Transforms labels to C-boolean
         image, label = loaded_img, (loaded_label > 0).astype(int)
@@ -60,8 +62,9 @@ class BrainTumour(Dataset):
             label = transformed["mask"]
         
         label = label.type(torch.FloatTensor)
-        self.data[index].uncache()
-        self.targets[index].uncache()
+        # self.data[index].uncache()
+        # self.targets[index].uncache()
+
         return image, label.squeeze()
 
             
