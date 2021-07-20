@@ -25,32 +25,32 @@ class BrainTumour(Dataset):
         images = np.array_split(images, len(folds)+1)
         labels = np.array_split(labels, len(folds)+1)
 
+        # prepend path
+        images = np.vectorize(lambda x: np.core.defchararray.add(images_path, x))(images)
+        labels = np.vectorize(lambda x: np.core.defchararray.add(labels_path, x))(labels)
+
         if split == 'Valid':
-            data0 = list(map(lambda img: nib.load(images_path+img), images[folds[0]]))
-            target0 = list(map(lambda label: nib.load(labels_path+label), labels[folds[0]]))
-            self.data, self.targets = data0, target0
+            self.data, self.targets = images[folds[0]], labels[folds[0]]
 
         elif split == 'Train':
-            data0 = np.concatenate((images[folds[1]], images[folds[2]]))
-            target0 = np.concatenate((labels[folds[1]], labels[folds[2]]))
+            self.data = np.concatenate((images[folds[1]], images[folds[2]]))
+            self.targets = np.concatenate((labels[folds[1]], labels[folds[2]]))
 
-            self.data = list(map(lambda img: nib.load(images_path+img), data0))
-            self.targets = list(map(lambda label: nib.load(labels_path+label), target0))
         else:
-            data0 = list(map(lambda img: nib.load(images_path+img), images[fold]))
-            target0 = list(map(lambda label: nib.load(labels_path+label), labels[fold]))
-            self.data, self.targets = data0, target0
-        
+            self.data, self.targets = images[fold], labels[fold]
             
 
     def __len__(self):
         return len(self.targets)
     
     def __getitem__(self, index):
-        # loaded_img = self.data[index].get_fdata()
-        # loaded_label = self.targets[index].get_fdata()
-        loaded_img = np.asarray(self.data[index].dataobj)
-        loaded_label = np.asarray(self.targets[index].dataobj)
+        # load proxy files
+        proxy_img = nib.load(self.data[index])
+        proxy_label = nib.load(self.targets[index])
+        
+        # read files into memory
+        loaded_img = np.asarray(proxy_img.dataobj)
+        loaded_label = np.asarray(proxy_label.dataobj)
 
         # Transforms labels to C-boolean
         image, label = loaded_img, (loaded_label > 0).astype(int)
@@ -62,8 +62,7 @@ class BrainTumour(Dataset):
             label = transformed["mask"]
         
         label = label.type(torch.FloatTensor)
-        # self.data[index].uncache()
-        # self.targets[index].uncache()
+
 
         return image, label.squeeze()
 
