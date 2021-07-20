@@ -16,6 +16,7 @@ import torch.nn.functional as F
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import sys
+import gc
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 # Globally load device identifier
@@ -182,11 +183,11 @@ if __name__ == '__main__':
     print("Num. train = %d, Num. val = %d, Num. test = %d"%(num_train,num_valid,num_test))
 
     # Initialize dataloaders
-    loader_train = DataLoader(dataset = dataset_train, drop_last=False,num_workers=1, 
+    loader_train = DataLoader(dataset = dataset_train, drop_last=False,num_workers=0, 
                             batch_size=batch_size, shuffle=True,pin_memory=True)
-    loader_valid = DataLoader(dataset = dataset_valid, drop_last=True,num_workers=1,
+    loader_valid = DataLoader(dataset = dataset_valid, drop_last=True,num_workers=0,
                             batch_size=batch_size, shuffle=False,pin_memory=True)
-    loader_test = DataLoader(dataset = dataset_test, drop_last=True,num_workers=1,
+    loader_test = DataLoader(dataset = dataset_test, drop_last=True,num_workers=0,
                             batch_size=batch_size, shuffle=False,pin_memory=True)
     nValid = len(loader_valid)
     nTrain = len(loader_train)
@@ -277,6 +278,11 @@ if __name__ == '__main__':
             if (i+1) % 10 == 0:
                 print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
                     .format(epoch+1, args.num_epochs, i+1, nTrain, loss.item()))
+            
+            # free data
+            del inputs
+            del labels
+            gc.collect()
         
         tr_acc = running_acc/nTrain
 
