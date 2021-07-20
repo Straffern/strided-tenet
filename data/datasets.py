@@ -61,7 +61,8 @@ class BrainTumour(Dataset):
             image = transformed["image"]
             label = transformed["mask"]
         
-        label = label.type(torch.FloatTensor)
+        label = label.type(torch.IntTensor)
+        image = image.type(torch.IntTensor)
 
 
         return image, label.squeeze()
