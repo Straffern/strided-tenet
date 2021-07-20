@@ -256,7 +256,7 @@ if __name__ == '__main__':
             b = inputs.shape[0]
             # Flatten to 1D vector as input to MPS
             inputs = inputs.view(b,nCh,-1)
-            labelsNp = labelsNp + (labels.numpy()).tolist()
+            # labelsNp = labelsNp + (labels.numpy()).tolist()
 
             inputs = inputs.to(device)
             labels = labels.to(device)
@@ -271,7 +271,7 @@ if __name__ == '__main__':
 
             with torch.no_grad():
                 preds = scores.clone()
-                predsNp = predsNp + (preds.data.cpu().numpy()).tolist()
+                # predsNp = predsNp + (preds.data.cpu().numpy()).tolist()
                 running_acc += accuracy(labels,preds)
                 running_loss += loss
                 
@@ -279,6 +279,9 @@ if __name__ == '__main__':
                 print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
                     .format(epoch+1, args.num_epochs, i+1, nTrain, loss.item()))
             
+            # free from execution graph
+            inputs.detach()
+            labels.detach()
             # free data
             del inputs
             del labels
