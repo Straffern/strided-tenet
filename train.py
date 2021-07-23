@@ -68,7 +68,6 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         acc_, samples = accuracy(labels, torch.Tensor(preds_thresh).to(device), True)
         vl_acc += acc_
         acc_sample += acc_sample + samples.detach().cpu().numpy().tolist()
-        break
     """
         # Compute AUC over the full (valid/test) set
         labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
@@ -280,9 +279,9 @@ if __name__ == '__main__':
     
             loss = loss_fun(preds.view(-1), labels.view(-1)) 
 
-            if i == 2:
-                ts_acc, ts_loss, _ = evaluate(loader=loader_test,\
-                    testMode=True,plot=True,mode='Test')
+            # if i == 2:
+            #     ts_acc, ts_loss, _ = evaluate(loader=loader_test,\
+            #         testMode=True,plot=True,mode='Test')
 
             # Backpropagate and update parameters
             loss.backward()
