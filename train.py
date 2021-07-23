@@ -139,7 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
     parser.add_argument('--fold', type=int, default=0, help='Fold to use for testing')
     parser.add_argument('--feat', type=int, default=1, help='Number of local features')
-    parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
+    parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
     parser.add_argument('--l2', type=float, default=0, help='L2 regularisation')
     parser.add_argument('--p', type=float, default=0.5, help='Augmentation probability')
     # parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
