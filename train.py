@@ -28,13 +28,15 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     vl_acc = torch.Tensor([0.]).to(device)
     vl_loss = 0.
 
-    labelsNp = [] 
-    predsNp = [] 
+    # labelsNp = [] 
+    # predsNp = [] 
+    acc_samples = []
+
     model.eval()
 
     for i, (inputs, labels) in enumerate(loader):
         b = inputs.shape[0]
-        labelsNp = labelsNp + labels.detach().cpu().numpy().tolist()
+        # labelsNp = labelsNp + labels.detach().cpu().numpy().tolist()
         # Make patches on the fly
 
         inputs = unfold(inputs, dim.numpy().astype(int))
@@ -57,14 +59,16 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
 
         loss = loss_fun(scores.view(-1,H,W,D), labels) 
         
-        predsNp = predsNp + preds.detach().cpu().numpy().tolist()
+        # predsNp = predsNp + preds.detach().cpu().numpy().tolist()
         vl_loss += float(loss.item())
-        vl_acc += accuracy(labels,preds.view(-1,H,W,D))
-
-    # Compute AUC over the full (valid/test) set
-    labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
-    fpr, tpr, thresh = precision_recall_curve(labelsNp.reshape(-1), predsNp.reshape(-1))
-
+        acc_, samples = accuracy(labels, (preds.view(-1,H,W,D).numpy() >= optThresh).astype(float), True)
+        vl_acc += acc_
+        acc_samples += acc_samples + samples.detach().cpu().numpy().tolist()
+    """
+        # Compute AUC over the full (valid/test) set
+        labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
+        fpr, tpr, thresh = precision_recall_curve(labelsNp.reshape(-1), predsNp.reshape(-1))
+    """
     if not testMode:
         alpha = 0.7
         gmeans = 2*fpr*tpr/(fpr+tpr)
@@ -73,18 +77,20 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         optThresh = thresh[idx]
         print("Opt Thresh: %.4f with Acc %.4f"%(thresh[idx],gmeans[idx]))
     
-    acc_, acc_sample = accuracy(torch.Tensor(labelsNp),\
-            torch.Tensor((predsNp >= optThresh).astype(float)),True)
-    acc_std = torch.std(acc_sample)
+    # acc_, acc_sample = accuracy(torch.Tensor(labelsNp),\
+    #         torch.Tensor((predsNp >= optThresh).astype(float)),True)
+    acc_samples = np.array(acc_samples).reshape(-1)
+    acc_std = torch.std(acc_samples)
 
     if mode is 'Test':    
-        acc_sample = acc_sample.detach().cpu().data.numpy()
+        # acc_sample = acc_sample.detach().cpu().data.numpy()
         print("Min.%.4f [%d]"%(acc_sample.min(),np.argmin(acc_sample)))
         print("Max.%.4f [%d]"%(acc_sample.max(),np.argmax(acc_sample)))
 
     print(mode+" Acc: %.2f +/- %.2f"%(acc_,acc_std))
 
-    vl_acc = average_precision_score(labelsNp.reshape(-1), predsNp.reshape(-1))
+    # vl_acc = average_precision_score(labelsNp.reshape(-1), predsNp.reshape(-1))
+    vl_acc = vl_acc/len(loader)
     vl_loss = vl_loss/len(loader)
     
     if plot:
@@ -107,7 +113,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
             tmp[:k,2,:,:][pred==2] = 0.6
 
             save_image(tmp,'vis/ep'+repr(epoch)+'.jpg')
-    labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
+    # labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
     return vl_acc, vl_loss, optThresh
 
 
