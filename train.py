@@ -68,7 +68,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
 
         acc_, samples = accuracy(labels, preds_thresh, True)
         vl_acc += acc_
-        acc_sample += acc_sample + samples.detach().cpu().numpy().tolist()
+        acc_sample += samples.detach().cpu().numpy().tolist()
     """
         # Compute AUC over the full (valid/test) set
         labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
@@ -95,7 +95,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     print(mode+" Acc: %.2f +/- %.2f"%(acc_,acc_std))
 
     # vl_acc = average_precision_score(labelsNp.reshape(-1), predsNp.reshape(-1))
-    vl_acc = (vl_acc/len(loader)).cpu().numpy()
+    vl_acc = (vl_acc/len(loader)).detach().cpu().numpy()
     vl_loss = vl_loss/len(loader)
     
     if plot:
