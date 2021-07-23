@@ -124,6 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--l2', type=float, default=0, help='L2 regularisation')
     parser.add_argument('--p', type=float, default=0.5, help='Augmentation probability')
     # parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
+    parser.add_argument('--workers', type=int, default=2, help='Num of workers')
     parser.add_argument('--save', action='store_true', default=False, help='Save model')
     parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
     parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
@@ -146,6 +147,7 @@ if __name__ == '__main__':
     batch_size = args.batch_size
     kernel = args.kernel
     feature_dim = args.feat
+    workers = args.workers
 
     ### Data processing and loading....
     trans_valid = transforms.Compose([ZeroPad(tuple(args.shape)), Norm(), ToTensor()])
@@ -181,11 +183,11 @@ if __name__ == '__main__':
     print("Num. train = %d, Num. val = %d, Num. test = %d"%(num_train,num_valid,num_test))
 
     # Initialize dataloaders
-    loader_train = DataLoader(dataset = dataset_train, drop_last=False,num_workers=0, 
+    loader_train = DataLoader(dataset = dataset_train, drop_last=False,num_workers=workers, 
                             batch_size=batch_size, shuffle=True,pin_memory=True)
-    loader_valid = DataLoader(dataset = dataset_valid, drop_last=True,num_workers=0,
+    loader_valid = DataLoader(dataset = dataset_valid, drop_last=True,num_workers=workers,
                             batch_size=batch_size, shuffle=False,pin_memory=True)
-    loader_test = DataLoader(dataset = dataset_test, drop_last=True,num_workers=0,
+    loader_test = DataLoader(dataset = dataset_test, drop_last=True,num_workers=workers,
                             batch_size=batch_size, shuffle=False,pin_memory=True)
     nValid = len(loader_valid)
     nTrain = len(loader_train)
