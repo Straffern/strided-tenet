@@ -38,6 +38,17 @@ class ZeroPad(object):
 
         return {'image': padded_img, 'mask': padded_mask}
 
+class Norm(object):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def __call__(self, sample) -> dict:
+        image, mask = sample['image'], sample['mask']
+        norm_image = (image - image.min())/(image.max()-image.min())
+        return {'image': norm_image, 'mask': mask}
+
+
+
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
 

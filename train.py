@@ -5,7 +5,7 @@ from models.mps import MPS
 from torchvision import transforms, datasets
 import pdb
 from data.datasets import *
-from data.transform import ToTensor, ZeroPad
+from data.transform import ToTensor, ZeroPad, Norm
 from utils.tools import *
 import argparse
 # from carbontracker.tracker import CarbonTracker
@@ -27,20 +27,19 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     ### Evaluation function for validation/testing
     vl_acc = torch.Tensor([0.]).to(device)
     vl_loss = 0.
+
     labelsNp = [] 
     predsNp = [] 
     model.eval()
 
     for i, (inputs, labels) in enumerate(loader):
         b = inputs.shape[0]
-        labelsNp = labelsNp + labels.numpy().tolist()
+        labelsNp = labelsNp + labels.cpu().numpy().tolist()
         # Make patches on the fly
 
         inputs = unfold(inputs, dim.numpy().astype(int))
         patch_shape = inputs.shape[2:]
         inputs = inputs.reshape(-1, nCh, *dim.numpy().astype(int))
-        # inputs = inputs.unfold(2,dim[0],dim[1]).unfold(3,dim[0],\
-                # dim[1]).reshape(-1,nCh,dim[0],dim[1])
 
         b = inputs.shape[0]
         # Flatten to 1D vector as input to MPS
@@ -53,7 +52,6 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         scores[scores.isnan()] = 0
         # Put patches back together
         scores = fold(scores.view(-1, *patch_shape))
-        # scores = fold2d(scores.view(-1,dim[0],dim[1]),labels.shape[0])
 
         preds = scores.clone()
 
@@ -74,6 +72,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         idx = np.argmax(gmeans)
         optThresh = thresh[idx]
         print("Opt Thresh: %.4f with Acc %.4f"%(thresh[idx],gmeans[idx]))
+    
     acc_, acc_sample = accuracy(torch.Tensor(labelsNp),\
             torch.Tensor((predsNp >= optThresh).astype(float)),True)
     acc_std = torch.std(acc_sample)
@@ -124,7 +123,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
     parser.add_argument('--l2', type=float, default=0, help='L2 regularisation')
     parser.add_argument('--p', type=float, default=0.5, help='Augmentation probability')
-    parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
+    # parser.add_argument('--aug', action='store_true', default=False, help='Use data augmentation')
     parser.add_argument('--save', action='store_true', default=False, help='Save model')
     parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
     parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
@@ -149,15 +148,14 @@ if __name__ == '__main__':
     feature_dim = args.feat
 
     ### Data processing and loading....
-    # trans_valid = A.Compose([ZeroPad(tuple(args.shape)), ToTensor()])
-    trans_valid = transforms.Compose([ZeroPad(tuple(args.shape)), ToTensor()])
-    if args.aug:
-        trans_train = A.Compose([A.ShiftScaleRotate(shift_limit=0.5, \
-                scale_limit=0.5, rotate_limit=30, p=args.p),ToTensorV2()])
-        print("Using Augmentation with p=%.2f"%args.p)
-    else:
-        trans_train = trans_valid
-        print("No augmentation....")
+    trans_valid = transforms.Compose([ZeroPad(tuple(args.shape)), Norm(), ToTensor()])
+    # if args.aug:
+    #     trans_train = A.Compose([A.ShiftScaleRotate(shift_limit=0.5, \
+    #             scale_limit=0.5, rotate_limit=30, p=args.p),ToTensorV2()])
+    #     print("Using Augmentation with p=%.2f"%args.p)
+    # else:
+    trans_train = trans_valid
+    print("No augmentation....")
     
     print("Using Brain MRI dataset")
     print("Using Fold: %d"%args.fold)
@@ -256,22 +254,22 @@ if __name__ == '__main__':
             b = inputs.shape[0]
             # Flatten to 1D vector as input to MPS
             inputs = inputs.view(b,nCh,-1)
-            # labelsNp = labelsNp + (labels.numpy()).tolist()
 
             inputs = inputs.to(device)
             labels = labels.to(device)
 
             scores = torch.sigmoid(model(inputs))
-
-            loss = loss_fun(scores.view(-1), labels.view(-1)) 
+            preds = scores.clone()
+            preds[preds.isnan()] = 0
+    
+            loss = loss_fun(preds.view(-1), labels.view(-1)) 
 
             # Backpropagate and update parameters
             loss.backward()
             optimizer.step()
 
             with torch.no_grad():
-                preds = scores.clone()
-                # predsNp = predsNp + (preds.data.cpu().numpy()).tolist()
+                # preds = scores.clone()
                 running_acc += accuracy(labels,preds)
                 running_loss += loss
                 
@@ -280,12 +278,12 @@ if __name__ == '__main__':
                     .format(epoch+1, args.num_epochs, i+1, nTrain, loss.item()))
             
             # free from execution graph
-            inputs.detach()
-            labels.detach()
+            # inputs.detach()
+            # labels.detach()
             # free data
-            del inputs
-            del labels
-            gc.collect()
+            # del inputs
+            # del labels
+            # gc.collect()
         
         tr_acc = running_acc/nTrain
 
