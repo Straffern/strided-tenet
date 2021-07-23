@@ -30,7 +30,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
 
     # labelsNp = [] 
     # predsNp = [] 
-    acc_samples = []
+    acc_sample = []
 
     model.eval()
 
@@ -61,9 +61,13 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         
         # predsNp = predsNp + preds.detach().cpu().numpy().tolist()
         vl_loss += float(loss.item())
-        acc_, samples = accuracy(labels, (preds.view(-1,H,W,D).numpy() >= optThresh).astype(float), True)
+
+
+        preds_thresh = (preds.view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float)
+
+        acc_, samples = accuracy(labels, torch.Tensor(preds_thresh).to(device), True)
         vl_acc += acc_
-        acc_samples += acc_samples + samples.detach().cpu().numpy().tolist()
+        acc_sample += acc_sample + samples.detach().cpu().numpy().tolist()
     """
         # Compute AUC over the full (valid/test) set
         labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
@@ -79,8 +83,8 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     
     # acc_, acc_sample = accuracy(torch.Tensor(labelsNp),\
     #         torch.Tensor((predsNp >= optThresh).astype(float)),True)
-    acc_samples = np.array(acc_samples).reshape(-1)
-    acc_std = torch.std(acc_samples)
+    acc_sample = np.array(acc_sample).reshape(-1)
+    acc_std = torch.std(acc_sample)
 
     if mode is 'Test':    
         # acc_sample = acc_sample.detach().cpu().data.numpy()
