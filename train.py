@@ -34,7 +34,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
 
     for i, (inputs, labels) in enumerate(loader):
         b = inputs.shape[0]
-        labelsNp = labelsNp + labels.detach().numpy().tolist()
+        labelsNp = labelsNp + labels.detach().cpu().numpy().tolist()
         # Make patches on the fly
 
         inputs = unfold(inputs, dim.numpy().astype(int))
@@ -57,7 +57,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
 
         loss = loss_fun(scores.view(-1,H,W,D), labels) 
         
-        predsNp = predsNp + preds.detach().numpy().tolist()
+        predsNp = predsNp + preds.detach().cpu().numpy().tolist()
         vl_loss += float(loss.item())
         vl_acc += accuracy(labels,preds.view(-1,H,W,D))
 
@@ -78,7 +78,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     acc_std = torch.std(acc_sample)
 
     if mode is 'Test':    
-        acc_sample = acc_sample.detach().data.numpy()
+        acc_sample = acc_sample.detach().cpu().data.numpy()
         print("Min.%.4f [%d]"%(acc_sample.min(),np.argmin(acc_sample)))
         print("Max.%.4f [%d]"%(acc_sample.max(),np.argmax(acc_sample)))
 
