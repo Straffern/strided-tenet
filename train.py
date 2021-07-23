@@ -119,8 +119,11 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
             # tmp[:k,2,:,:][pred==3] = 0.6
             img = tmp.detach().cpu().numpy()
 
-            nib.save(img, 'vis/ep'+repr(epoch)+'.nii')
-            # save_image(tmp,'vis/ep'+repr(epoch)+'.jpg')
+            func = nib.load('data/BrainTumourMRI/labelsTr/BRATS_001.nii')
+            ni_img = nib.Nifti2Image(img, func.affine)
+            nib.save(ni_img, 'vis/ep'+repr(epoch)+'.nii.gz')
+            # nib.save(img, 'vis/ep'+repr(epoch)+'.nii')
+
 
 
 
