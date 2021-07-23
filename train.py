@@ -84,7 +84,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     # acc_, acc_sample = accuracy(torch.Tensor(labelsNp),\
     #         torch.Tensor((predsNp >= optThresh).astype(float)),True)
     acc_sample = np.array(acc_sample).reshape(-1)
-    acc_std = torch.std(acc_sample)
+    acc_std = torch.std(torch.Tensor(acc_sample))
 
     if mode is 'Test':    
         # acc_sample = acc_sample.detach().cpu().data.numpy()
