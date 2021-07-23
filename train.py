@@ -102,7 +102,8 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
             k = (labels.shape[0] if labels.shape[0] < k else k)
             tmp =  torch.zeros(k,H,W,D).to(device)
 
-            pred =  np.add((preds[:k].view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float), 2*labels[:k])
+            # preds_thresh = (preds[:k].view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float)
+            pred =  np.add(preds_thresh[:k], 2*labels[:k])
             ### FN
             tmp[:k,...][pred==2] = 3
             # tmp[:k,1,:,:][pred==2] = 0.29
