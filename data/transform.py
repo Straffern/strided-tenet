@@ -44,7 +44,10 @@ class Norm(object):
 
     def __call__(self, sample) -> dict:
         image, mask = sample['image'], sample['mask']
-        norm_image = (image - image.min())/(image.max()-image.min())
+
+        norm_image = image
+        for i in range(image.shape[-1]):
+            norm_image[...,i] = (image[...,i] - image[...,i].min())/(image[...,i].max()-image[...,i].min())
         return {'image': norm_image, 'mask': mask}
 
 

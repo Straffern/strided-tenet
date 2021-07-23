@@ -68,6 +68,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         acc_, samples = accuracy(labels, torch.Tensor(preds_thresh).to(device), True)
         vl_acc += acc_
         acc_sample += acc_sample + samples.detach().cpu().numpy().tolist()
+        break
     """
         # Compute AUC over the full (valid/test) set
         labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
@@ -100,24 +101,27 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     if plot:
             k = 32
             k = (labels.shape[0] if labels.shape[0] < k else k)
-            tmp =  torch.zeros(k,3,H,W).to(device)
-            pred =  ((preds[:k].view(-1,H,W) >= optThresh).float() \
-                    + 2*labels[:k])
-            ### FN
-            tmp[:k,0,:,:][pred==1] = 0.55
-            tmp[:k,1,:,:][pred==1] = 0.29
-            tmp[:k,2,:,:][pred==1] = 0.39
-            ### FP
-            tmp[:k,0,:,:][pred==3] = 0.13
-            tmp[:k,1,:,:][pred==3] = 0.60
-            tmp[:k,2,:,:][pred==3] = 0.20
-            ## TP
-            tmp[:k,0,:,:][pred==2] = 0.6
-            tmp[:k,1,:,:][pred==2] = 0.6
-            tmp[:k,2,:,:][pred==2] = 0.6
+            tmp =  torch.zeros(k,H,W,D).to(device)
 
-            save_image(tmp,'vis/ep'+repr(epoch)+'.jpg')
-    # labelsNp, predsNp = np.array(labelsNp), np.array(predsNp)
+            pred =  np.add((preds[:k].view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float), 2*labels[:k])
+            ### FN
+            tmp[:k,...][pred==2] = 3
+            # tmp[:k,1,:,:][pred==2] = 0.29
+            # tmp[:k,2,:,:][pred==2] = 0.39
+            ### FP
+            tmp[:k,...][pred==1] = 2
+            # tmp[:k,1,:,:][pred==1] = 0.60
+            # tmp[:k,2,:,:][pred==1] = 0.20
+            ## TP
+            tmp[:k,...][pred==3] = 1
+            # tmp[:k,1,:,:][pred==3] = 0.6
+            # tmp[:k,2,:,:][pred==3] = 0.6
+            
+            nib.save(tmp, 'vis/ep'+repr(epoch)+'.nii')
+            # save_image(tmp,'vis/ep'+repr(epoch)+'.jpg')
+
+
+
     return vl_acc, vl_loss, optThresh
 
 
@@ -275,6 +279,10 @@ if __name__ == '__main__':
             preds[preds.isnan()] = 0
     
             loss = loss_fun(preds.view(-1), labels.view(-1)) 
+
+            if i == 2:
+                ts_acc, ts_loss, _ = evaluate(loader=loader_test,\
+                    testMode=True,plot=True,mode='Test')
 
             # Backpropagate and update parameters
             loss.backward()
