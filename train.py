@@ -95,7 +95,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
     print(mode+" Acc: %.2f +/- %.2f"%(acc_,acc_std))
 
     # vl_acc = average_precision_score(labelsNp.reshape(-1), predsNp.reshape(-1))
-    vl_acc = (vl_acc/len(loader)).detach().cpu().numpy()
+    vl_acc = (vl_acc/len(loader)).detach().cpu().item()
     vl_loss = vl_loss/len(loader)
     
     if plot:
