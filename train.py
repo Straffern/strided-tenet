@@ -63,9 +63,10 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
         vl_loss += float(loss.item())
 
 
-        preds_thresh = (preds.view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float)
+        # preds_thresh = (preds.view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float)
+        preds_thresh = (preds.view(-1,H,W,D) >= optThresh).float()
 
-        acc_, samples = accuracy(labels, torch.Tensor(preds_thresh).to(device), True)
+        acc_, samples = accuracy(labels, preds_thresh, True)
         vl_acc += acc_
         acc_sample += acc_sample + samples.detach().cpu().numpy().tolist()
     """
@@ -103,7 +104,7 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
             tmp =  torch.zeros(k,H,W,D).to(device)
 
             # preds_thresh = (preds[:k].view(-1,H,W,D).detach().cpu().numpy() >= optThresh).astype(float)
-            pred =  np.add(preds_thresh[:k], 2*labels[:k])
+            pred = preds_thresh[:k] + 2*labels[:k]
             ### FN
             tmp[:k,...][pred==2] = 3
             # tmp[:k,1,:,:][pred==2] = 0.29
@@ -116,8 +117,9 @@ def evaluate(loader,optThresh=0.5,testMode=False,plot=False,mode='Valid',post=Fa
             tmp[:k,...][pred==3] = 1
             # tmp[:k,1,:,:][pred==3] = 0.6
             # tmp[:k,2,:,:][pred==3] = 0.6
-            
-            nib.save(tmp, 'vis/ep'+repr(epoch)+'.nii')
+            img = tmp.detach().cpu().numpy()
+
+            nib.save(img, 'vis/ep'+repr(epoch)+'.nii')
             # save_image(tmp,'vis/ep'+repr(epoch)+'.jpg')
 
 
