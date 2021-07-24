@@ -291,9 +291,6 @@ if __name__ == '__main__':
     
             loss = loss_fun(preds.view(-1), labels.view(-1)) 
 
-            # if i == 2:
-            #     ts_acc, ts_loss, _ = evaluate(loader=loader_test,\
-            #         testMode=True,plot=True,mode='Test')
 
             # Backpropagate and update parameters
             loss.backward()
@@ -308,13 +305,6 @@ if __name__ == '__main__':
                 print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
                     .format(epoch+1, args.num_epochs, i+1, nTrain, loss.item()))
             
-            # free from execution graph
-            # inputs.detach()
-            # labels.detach()
-            # free data
-            # del inputs
-            # del labels
-            # gc.collect()
         
         tr_acc = running_acc/nTrain
 
