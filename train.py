@@ -147,6 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--save', action='store_true', default=False, help='Save model')
     parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
     parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
+    parser.add_argument('--norm_channel', action='store_true', default=True, help='Normalize per channel')
     parser.add_argument('--kernel', nargs='*', type=int, default=[16], help='Stride of squeeze kernel')
     parser.add_argument('--shape', nargs='*', type=int, default=[256, 256, 160], help='Shape that data should be padded to.')
     parser.add_argument('--seed', type=int, default=1, help='Random seed')
@@ -167,9 +168,10 @@ if __name__ == '__main__':
     kernel = args.kernel
     feature_dim = args.feat
     workers = args.workers
+    each_channel = args.norm_channel
 
     ### Data processing and loading....
-    trans_valid = transforms.Compose([ZeroPad(tuple(args.shape)), Norm(), ToTensor()])
+    trans_valid = transforms.Compose([ZeroPad(tuple(args.shape)), Norm(each_channel), ToTensor()])
     # if args.aug:
     #     trans_train = A.Compose([A.ShiftScaleRotate(shift_limit=0.5, \
     #             scale_limit=0.5, rotate_limit=30, p=args.p),ToTensorV2()])
@@ -234,10 +236,14 @@ if __name__ == '__main__':
     nParam = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Number of parameters:%d"%(nParam))
     print(f"Maximum MPS bond dimension = {args.bond_dim}")
+    print(f"Normalize per channel: {args.each_channel}")
     print(f"Using Adam w/ learning rate = {args.lr:.1e}")
     print("Local feature map dim: %d, nCh: %d, B:%d"%(feature_dim,nCh,batch_size))
     with open(logFile,"a") as f:
         print("Bond dim: %d"%(args.bond_dim),file=f)
+        print(f"Normalize per channel: {args.each_channel}", file=f)
+        print(f"Kernel size: {kernel}", file=f)
+        print(f"Patch size: {dim}", file=f)
         print("Number of parameters:%d"%(nParam),file=f)
         print(f"Using Adam w/ learning rate = {args.lr:.1e}",file=f)
         print("Local feature map dim: %d, nCh: %d, B:%d"%(feature_dim,nCh,batch_size),file=f)

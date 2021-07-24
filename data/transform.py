@@ -39,15 +39,19 @@ class ZeroPad(object):
         return {'image': padded_img, 'mask': padded_mask}
 
 class Norm(object):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, each_channel=True) -> None:
+        self.each_channel = each_channel
 
     def __call__(self, sample) -> dict:
         image, mask = sample['image'], sample['mask']
 
         norm_image = image
-        for i in range(image.shape[-1]):
-            norm_image[...,i] = (image[...,i] - image[...,i].min())/(image[...,i].max()-image[...,i].min())
+
+        if self.each_channel:
+            for i in range(image.shape[-1]):
+                norm_image[...,i] = (image[...,i] - image[...,i].min())/(image[...,i].max()-image[...,i].min())
+            return {'image': norm_image, 'mask': mask}
+        norm_image = (image - image.min())/(image.max()-image.min())
         return {'image': norm_image, 'mask': mask}
 
 
