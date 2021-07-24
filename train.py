@@ -147,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--save', action='store_true', default=False, help='Save model')
     parser.add_argument('--data', type=str, default='data/BrainTumourMRI/',help='Path to data.')
     parser.add_argument('--bond_dim', type=int, default=2, help='MPS Bond dimension')
-    parser.add_argument('--norm_channel', action='store_true', default=True, help='Normalize per channel')
+    parser.add_argument('--norm_channel', action='store_true', default=False, help='Normalize per channel')
     parser.add_argument('--kernel', nargs='*', type=int, default=[16], help='Stride of squeeze kernel')
     parser.add_argument('--shape', nargs='*', type=int, default=[256, 256, 160], help='Shape that data should be padded to.')
     parser.add_argument('--seed', type=int, default=1, help='Random seed')
